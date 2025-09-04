@@ -3,13 +3,17 @@ import API from "./api";
 
 function App() {
   const [todos, setTodos] = useState([]);
-  const [form, setForm] = useState({ title: "", description: "" });
+  const [form, setForm] = useState({ title: "", description: "", dueDate: "" });
   const [editingId, setEditingId] = useState(null);
 
   // Fetch all todos
   const fetchTodos = async () => {
-    const res = await API.get("/todos");
-    setTodos(res.data);
+    try {
+      const res = await API.get("/todos");
+      setTodos(res.data);
+    } catch (err) {
+      console.error("Error fetching todos:", err);
+    }
   };
 
   useEffect(() => {
@@ -19,42 +23,55 @@ function App() {
   // Add or Update todo
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.title || !form.description) return;
+    if (!form.title || !form.description || !form.dueDate) return;
 
-    if (editingId) {
-      await API.put(`/todos/${editingId}`, form);
-      setEditingId(null);
-    } else {
-      await API.post("/todos", form);
+    try {
+      if (editingId) {
+        await API.put(`/todos/${editingId}`, form);
+        setEditingId(null);
+      } else {
+        await API.post("/todos", form);
+      }
+      setForm({ title: "", description: "", dueDate: "" });
+      fetchTodos();
+    } catch (err) {
+      alert(err.response?.data?.message || "Error saving todo");
     }
-
-    setForm({ title: "", description: "" });
-    fetchTodos();
   };
 
   // Delete todo
   const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this todo?")) return;
     await API.delete(`/todos/${id}`);
     fetchTodos();
   };
 
   // Edit todo
   const handleEdit = (todo) => {
-    setForm({ title: todo.title, description: todo.description });
+    setForm({ title: todo.title, description: todo.description, dueDate: todo.dueDate?.slice(0, 10) });
     setEditingId(todo._id);
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "pending": return "#f1c40f";
+      case "done": return "#2ecc71";
+      case "rejected": return "#e74c3c";
+      default: return "#95a5a6";
+    }
   };
 
   return (
     <div style={{
-      maxWidth: "600px",
+      maxWidth: "700px",
       margin: "2rem auto",
       padding: "2rem",
       backgroundColor: "#ffffff",
       borderRadius: "12px",
-      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-      fontFamily: "Arial, sans-serif"
+      boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
+      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
     }}>
-      <h1 style={{ textAlign: "center", color: "#333" }}>📝 Todo App</h1>
+      <h1 style={{ textAlign: "center", color: "#34495e" }}>📝 Todo App</h1>
 
       {/* Form */}
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "2rem" }}>
@@ -82,18 +99,30 @@ function App() {
           }}
           required
         />
+        <input
+          type="date"
+          value={form.dueDate}
+          onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+          style={{
+            padding: "0.75rem",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            fontSize: "1rem"
+          }}
+          required
+        />
         <button type="submit" style={{
           padding: "0.75rem",
           borderRadius: "6px",
           border: "none",
-          backgroundColor: "#4CAF50",
+          backgroundColor: "#3498db",
           color: "#fff",
           fontWeight: "bold",
           cursor: "pointer",
           transition: "background-color 0.2s"
         }}
-        onMouseOver={e => e.currentTarget.style.backgroundColor="#45a049"}
-        onMouseOut={e => e.currentTarget.style.backgroundColor="#4CAF50"}
+          onMouseOver={e => e.currentTarget.style.backgroundColor = "#2980b9"}
+          onMouseOut={e => e.currentTarget.style.backgroundColor = "#3498db"}
         >
           {editingId ? "Update Todo" : "Add Todo"}
         </button>
@@ -112,22 +141,24 @@ function App() {
             boxShadow: "0 2px 6px rgba(0,0,0,0.05)"
           }}>
             <div>
-              <b style={{ color: "#333" }}>{todo.title}:</b> {todo.description}
+              <b style={{ color: "#34495e" }}>{todo.title}</b>: {todo.description}
+              <div style={{ fontSize: "0.85rem", color: "#7f8c8d" }}>Due: {new Date(todo.dueDate).toLocaleDateString()}</div>
+              <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: getStatusColor(todo.status) }}>{todo.status.toUpperCase()}</div>
             </div>
             <div style={{ display: "flex", gap: "0.5rem" }}>
               <button
                 onClick={() => handleEdit(todo)}
                 style={{
-                  backgroundColor: "#3498db",
+                  backgroundColor: "#2ecc71",
                   border: "none",
                   color: "#fff",
                   padding: "0.5rem 0.75rem",
                   borderRadius: "6px",
                   cursor: "pointer",
-                  fontSize: "0.9rem"
+                  fontSize: "0.85rem"
                 }}
-                onMouseOver={e => e.currentTarget.style.backgroundColor="#2980b9"}
-                onMouseOut={e => e.currentTarget.style.backgroundColor="#3498db"}
+                onMouseOver={e => e.currentTarget.style.backgroundColor = "#27ae60"}
+                onMouseOut={e => e.currentTarget.style.backgroundColor = "#2ecc71"}
               >
                 ✏️ Edit
               </button>
@@ -140,10 +171,10 @@ function App() {
                   padding: "0.5rem 0.75rem",
                   borderRadius: "6px",
                   cursor: "pointer",
-                  fontSize: "0.9rem"
+                  fontSize: "0.85rem"
                 }}
-                onMouseOver={e => e.currentTarget.style.backgroundColor="#c0392b"}
-                onMouseOut={e => e.currentTarget.style.backgroundColor="#e74c3c"}
+                onMouseOver={e => e.currentTarget.style.backgroundColor = "#c0392b"}
+                onMouseOut={e => e.currentTarget.style.backgroundColor = "#e74c3c"}
               >
                 ❌ Delete
               </button>
