@@ -1,93 +1,157 @@
-import { useState, useEffect } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import "./App.css";
-
-import "./styles.css";
-
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import "./styles.css";
-
-
-
-function Home() {
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-  const API_URL = import.meta.env.VITE_API_URL;
-
-
-    fetch(`${API_URL}/hello`)
-      .then((res) => res.json())
-      .then((data) => setMessage(data.message))
-      .catch((err) => console.error(err));
-  }, []);
-
-  return (
-    <div className="api-message">
-      <h3>Backend API Response:</h3>
-      <p>{message || "Loading..."}</p>
-    </div>
-  );
-}
-
-function About() {
-  return (
-    <main className="container about-page">
-      <h2>About Our School</h2>
-      <p>
-        Our school is dedicated to providing high-quality education from primary
-        to secondary levels. With experienced teachers, engaging programs, and a
-        strong community, we help students succeed in both academics and life.
-      </p>
-      <p>
-        We believe in learning beyond classrooms — through activities, teamwork,
-        and personal growth. Parents, teachers, and students work hand-in-hand
-        to create a supportive environment where every child thrives.
-      </p>
-    </main>
-  );
-}
-
-function Contact() {
-  return (
-    <main className="container about-page">
-      <h2>Contact Us</h2>
-      <p>Email: info@school.com</p>
-      <p>Phone: +1 (555) 123-4567</p>
-      <p>Address: 123 Learning Street, Education City</p>
-    </main>
-  );
-}
+import { useEffect, useState } from "react";
+import API from "./api";
 
 function App() {
-  const year = new Date().getFullYear();
+  const [todos, setTodos] = useState([]);
+  const [form, setForm] = useState({ title: "", description: "" });
+  const [editingId, setEditingId] = useState(null);
+
+  // Fetch all todos
+  const fetchTodos = async () => {
+    const res = await API.get("/todos");
+    setTodos(res.data);
+  };
+
+  useEffect(() => {
+    fetchTodos();
+  }, []);
+
+  // Add or Update todo
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.title || !form.description) return;
+
+    if (editingId) {
+      await API.put(`/todos/${editingId}`, form);
+      setEditingId(null);
+    } else {
+      await API.post("/todos", form);
+    }
+
+    setForm({ title: "", description: "" });
+    fetchTodos();
+  };
+
+  // Delete todo
+  const handleDelete = async (id) => {
+    await API.delete(`/todos/${id}`);
+    fetchTodos();
+  };
+
+  // Edit todo
+  const handleEdit = (todo) => {
+    setForm({ title: todo.title, description: todo.description });
+    setEditingId(todo._id);
+  };
 
   return (
-    <Router>
-      <header className="site-header">
-        <div className="container">
-          <h1>Welcome to School</h1>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-            <Link to="/contact">Contact</Link>
-          </nav>
-        </div>
-      </header>
+    <div style={{
+      maxWidth: "600px",
+      margin: "2rem auto",
+      padding: "2rem",
+      backgroundColor: "#ffffff",
+      borderRadius: "12px",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+      fontFamily: "Arial, sans-serif"
+    }}>
+      <h1 style={{ textAlign: "center", color: "#333" }}>📝 Todo App</h1>
 
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-      </Routes>
+      {/* Form */}
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "2rem" }}>
+        <input
+          placeholder="Title"
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          style={{
+            padding: "0.75rem",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            fontSize: "1rem"
+          }}
+          required
+        />
+        <input
+          placeholder="Description"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          style={{
+            padding: "0.75rem",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            fontSize: "1rem"
+          }}
+          required
+        />
+        <button type="submit" style={{
+          padding: "0.75rem",
+          borderRadius: "6px",
+          border: "none",
+          backgroundColor: "#4CAF50",
+          color: "#fff",
+          fontWeight: "bold",
+          cursor: "pointer",
+          transition: "background-color 0.2s"
+        }}
+        onMouseOver={e => e.currentTarget.style.backgroundColor="#45a049"}
+        onMouseOut={e => e.currentTarget.style.backgroundColor="#4CAF50"}
+        >
+          {editingId ? "Update Todo" : "Add Todo"}
+        </button>
+      </form>
 
-      <footer className="site-footer">
-        <div className="container">
-          <p>© {year} School. All rights reserved.</p>
-        </div>
-      </footer>
-    </Router>
+      {/* Todo List */}
+      <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: "1rem" }}>
+        {todos.map((todo) => (
+          <li key={todo._id} style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "1rem",
+            borderRadius: "8px",
+            backgroundColor: "#f9f9f9",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.05)"
+          }}>
+            <div>
+              <b style={{ color: "#333" }}>{todo.title}:</b> {todo.description}
+            </div>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button
+                onClick={() => handleEdit(todo)}
+                style={{
+                  backgroundColor: "#3498db",
+                  border: "none",
+                  color: "#fff",
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "0.9rem"
+                }}
+                onMouseOver={e => e.currentTarget.style.backgroundColor="#2980b9"}
+                onMouseOut={e => e.currentTarget.style.backgroundColor="#3498db"}
+              >
+                ✏️ Edit
+              </button>
+              <button
+                onClick={() => handleDelete(todo._id)}
+                style={{
+                  backgroundColor: "#e74c3c",
+                  border: "none",
+                  color: "#fff",
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "0.9rem"
+                }}
+                onMouseOver={e => e.currentTarget.style.backgroundColor="#c0392b"}
+                onMouseOut={e => e.currentTarget.style.backgroundColor="#e74c3c"}
+              >
+                ❌ Delete
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
