@@ -3,7 +3,7 @@ import API from "./api";
 
 function App() {
   const [todos, setTodos] = useState([]);
-  const [form, setForm] = useState({ title: "", description: "", dueDate: "" });
+  const [form, setForm] = useState({ title: "", description: "", dueDate: "", status: "pending" });
   const [editingId, setEditingId] = useState(null);
 
   // Fetch all todos
@@ -32,7 +32,7 @@ function App() {
       } else {
         await API.post("/todos", form);
       }
-      setForm({ title: "", description: "", dueDate: "" });
+      setForm({ title: "", description: "", dueDate: "", status: "pending" });
       fetchTodos();
     } catch (err) {
       alert(err.response?.data?.message || "Error saving todo");
@@ -48,7 +48,12 @@ function App() {
 
   // Edit todo
   const handleEdit = (todo) => {
-    setForm({ title: todo.title, description: todo.description, dueDate: todo.dueDate?.slice(0, 10) });
+    setForm({
+      title: todo.title,
+      description: todo.description,
+      dueDate: todo.dueDate?.slice(0, 10),
+      status: todo.status,
+    });
     setEditingId(todo._id);
   };
 
@@ -79,48 +84,45 @@ function App() {
           placeholder="Title"
           value={form.title}
           onChange={(e) => setForm({ ...form, title: e.target.value })}
-          style={{
-            padding: "0.75rem",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            fontSize: "1rem"
-          }}
+          style={{ padding: "0.75rem", borderRadius: "6px", border: "1px solid #ccc", fontSize: "1rem" }}
           required
         />
         <input
           placeholder="Description"
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
-          style={{
-            padding: "0.75rem",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            fontSize: "1rem"
-          }}
+          style={{ padding: "0.75rem", borderRadius: "6px", border: "1px solid #ccc", fontSize: "1rem" }}
           required
         />
         <input
           type="date"
           value={form.dueDate}
           onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+          style={{ padding: "0.75rem", borderRadius: "6px", border: "1px solid #ccc", fontSize: "1rem" }}
+          required
+        />
+        {editingId && (
+          <select
+            value={form.status}
+            onChange={(e) => setForm({ ...form, status: e.target.value })}
+            style={{ padding: "0.75rem", borderRadius: "6px", border: "1px solid #ccc", fontSize: "1rem" }}
+          >
+            <option value="pending">Pending</option>
+            <option value="done">Done</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        )}
+        <button type="submit"
           style={{
             padding: "0.75rem",
             borderRadius: "6px",
-            border: "1px solid #ccc",
-            fontSize: "1rem"
+            border: "none",
+            backgroundColor: "#3498db",
+            color: "#fff",
+            fontWeight: "bold",
+            cursor: "pointer",
+            transition: "background-color 0.2s"
           }}
-          required
-        />
-        <button type="submit" style={{
-          padding: "0.75rem",
-          borderRadius: "6px",
-          border: "none",
-          backgroundColor: "#3498db",
-          color: "#fff",
-          fontWeight: "bold",
-          cursor: "pointer",
-          transition: "background-color 0.2s"
-        }}
           onMouseOver={e => e.currentTarget.style.backgroundColor = "#2980b9"}
           onMouseOut={e => e.currentTarget.style.backgroundColor = "#3498db"}
         >
